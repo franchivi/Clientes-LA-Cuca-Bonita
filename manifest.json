@@ -1,0 +1,18 @@
+{
+  "short_name": "LaCucaBonita",
+  "name": "La Cuca Bonita - Clientes",
+  "description": "App para almacenamiento y consulta de clientes de La Cuca Bonita",
+  "icons": [
+    {
+      "src": "img/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "./index.html",
+  "background_color": "#f8f9fc",
+  "theme_color": "#d84a75",
+  "display": "standalone",
+  "orientation": "portrait"
+}

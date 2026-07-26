@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>La Cuca Bonita | Gestión de Clientes</title>
+  
+  <!-- SEO & Mobile App Meta Tags -->
+  <meta name="description" content="Aplicación de consulta y gestión de clientes y pedidos de La Cuca Bonita">
+  <meta name="theme-color" content="#d84a75">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="La Cuca Bonita">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="img/logo.png">
+  <link rel="apple-touch-icon" href="img/logo.png">
+
+  <!-- Google Fonts: Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- RemixIcon Icons CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+
+  <!-- Main Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-logo">
+        <img src="img/logo.png" alt="La Cuca Bonita" class="brand-logo-img">
+        <div class="brand-info">
+          <h1>La Cuca Bonita</h1>
+          <span>Gestión de Clientes</span>
+        </div>
+      </div>
+      
+      <div class="header-actions">
+        <button class="btn-icon" id="backupBtn" title="Copia de Seguridad">
+          <i class="ri-save-3-line"></i>
+        </button>
+        <button class="btn-icon" id="themeToggleBtn" title="Cambiar Tema">
+          <i class="ri-moon-line" id="themeToggleIcon"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    
+    <!-- Quick Statistics -->
+    <section class="stats-bar">
+      <div class="stat-card">
+        <span class="stat-title">Total Clientes</span>
+        <span class="stat-value primary" id="statTotal">0</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-title">Activos</span>
+        <span class="stat-value warning" id="statActive">0</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-title">Entregados</span>
+        <span class="stat-value success" id="statCompleted">0</span>
+      </div>
+    </section>
+
+    <!-- Search & Filter Controls -->
+    <section class="search-filter-section">
+      <div class="search-box">
+        <i class="ri-search-line"></i>
+        <input type="text" id="searchInput" class="search-input" placeholder="Buscar por nombre, teléfono, Instagram o pedido..." autocomplete="off">
+        <button class="search-clear-btn" id="clearSearchBtn" title="Limpiar"><i class="ri-close-line"></i></button>
+      </div>
+
+      <div class="filter-chips">
+        <button class="chip active" data-filter="todos">Todos</button>
+        <button class="chip" data-filter="pendiente">Pendientes</button>
+        <button class="chip" data-filter="en_proceso">En Proceso</button>
+        <button class="chip" data-filter="entregado">Entregados</button>
+        <button class="chip" data-filter="cancelado">Cancelados</button>
+      </div>
+    </section>
+
+    <!-- Customer Cards Grid -->
+    <section class="customer-grid" id="customerGrid">
+      <!-- Dynamic Customer Cards Rendered via JS -->
+    </section>
+
+  </main>
+
+  <!-- Floating Action Button (FAB) -->
+  <button class="fab-btn" id="addClientBtn" title="Añadir Cliente">
+    <i class="ri-add-line"></i>
+  </button>
+
+  <!-- Mobile Bottom Touch Navigation Bar -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+      <i class="ri-user-line"></i>
+      <span>Clientes</span>
+    </button>
+    <button class="nav-item" id="navAddBtn">
+      <i class="ri-user-add-line"></i>
+      <span>Nuevo</span>
+    </button>
+    <button class="nav-item" id="navBackupBtn">
+      <i class="ri-database-2-line"></i>
+      <span>Backup</span>
+    </button>
+  </nav>
+
+  <!-- Form Modal (Add / Edit Client) -->
+  <div class="modal-backdrop" id="formModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title" id="formModalTitle"><i class="ri-user-add-line"></i> Nuevo Cliente</h3>
+        <button class="modal-close-btn"><i class="ri-close-line"></i></button>
+      </div>
+
+      <form id="clientForm">
+        <div class="form-grid">
+          
+          <div class="form-group form-full">
+            <label class="form-label" for="inputNombre"><i class="ri-user-3-line"></i> Nombre completo *</label>
+            <input type="text" id="inputNombre" class="form-input" placeholder="Ej: María Elena García" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="inputTelefono"><i class="ri-phone-line"></i> Teléfono</label>
+            <input type="tel" id="inputTelefono" class="form-input" placeholder="Ej: +34 612 345 678">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="inputInstagram"><i class="ri-instagram-line"></i> Instagram</label>
+            <input type="text" id="inputInstagram" class="form-input" placeholder="Ej: @maria_elena_g">
+          </div>
+
+          <div class="form-group form-full">
+            <label class="form-label" for="inputEmail"><i class="ri-mail-line"></i> Email</label>
+            <input type="email" id="inputEmail" class="form-input" placeholder="Ej: maria@email.com">
+          </div>
+
+          <div class="form-group form-full">
+            <label class="form-label" for="inputDireccion"><i class="ri-map-pin-line"></i> Dirección completa</label>
+            <input type="text" id="inputDireccion" class="form-input" placeholder="Ej: Calle Mayor 14, 2ºB, Madrid">
+          </div>
+
+          <div class="form-group form-full">
+            <label class="form-label" for="inputPedido"><i class="ri-shopping-bag-3-line"></i> Pedido / Notas</label>
+            <textarea id="inputPedido" class="form-textarea" placeholder="Ej: 1x Vestido Floral Rosa (Talla M), 1x Bolso Artesanal"></textarea>
+          </div>
+
+          <div class="form-group form-full">
+            <label class="form-label" for="inputEstado"><i class="ri-flag-line"></i> Estado del Pedido</label>
+            <select id="inputEstado" class="form-select">
+              <option value="pendiente">Pendiente</option>
+              <option value="en_proceso">En Proceso</option>
+              <option value="entregado">Entregado</option>
+              <option value="cancelado">Cancelado</option>
+            </select>
+          </div>
+
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary modal-cancel-btn">Cancelar</button>
+          <button type="submit" class="btn btn-primary"><i class="ri-save-line"></i> Guardar Cliente</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Detail Modal -->
+  <div class="modal-backdrop" id="detailModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="ri-file-user-line"></i> Ficha del Cliente</h3>
+        <button class="modal-close-btn"><i class="ri-close-line"></i></button>
+      </div>
+      <div id="detailModalContent">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Backup & Export Modal -->
+  <div class="modal-backdrop" id="backupModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="ri-cloud-line"></i> Guardado y Copia de Seguridad</h3>
+        <button class="modal-close-btn"><i class="ri-close-line"></i></button>
+      </div>
+      
+      <!-- GitHub Pages Info Banner -->
+      <div style="background: var(--primary-light); border: 1px solid rgba(216, 74, 117, 0.3); border-radius: var(--border-radius-md); padding: 12px 14px; margin-bottom: 18px; font-size: 0.85rem; color: var(--text-main);">
+        <div style="font-weight: 700; color: var(--primary-color); display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+          <i class="ri-github-fill" style="font-size: 18px;"></i> ¿Cómo se guardan tus datos en GitHub?
+        </div>
+        Al subir la app a GitHub Pages, <strong>todos tus clientes y pedidos se guardan automáticamente en tu móvil</strong> en el almacenamiento seguro de tu navegador. Cada vez que abras la app en tu móvil, tus datos estarán allí.
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <div style="font-weight: 700; font-size: 0.9rem; color: var(--text-main); margin-top: 4px;">
+          <i class="ri-file-download-line" style="color: var(--primary-color);"></i> Descargar Copia de Seguridad
+        </div>
+
+        <button class="btn btn-primary" id="exportJsonBtn" style="justify-content: flex-start;">
+          <i class="ri-download-2-line" style="font-size: 20px;"></i> Exportar Copia de Seguridad (JSON)
+        </button>
+        <button class="btn btn-secondary" id="exportCsvBtn" style="justify-content: flex-start;">
+          <i class="ri-file-excel-2-line" style="font-size: 20px; color: #217346;"></i> Exportar a Excel / CSV
+        </button>
+
+        <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 6px 0;">
+
+        <div>
+          <label class="form-label" style="margin-bottom: 8px;"><i class="ri-upload-2-line"></i> Restaurar / Importar desde archivo JSON</label>
+          <input type="file" id="importFileInput" accept=".json" class="form-input" style="padding: 10px;">
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 6px 0;">
+
+        <!-- Cloud Sync Feature -->
+        <div>
+          <div class="form-label" style="margin-bottom: 6px;"><i class="ri-refresh-line"></i> Sincronización en la Nube (Opcional)</div>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px;">
+            Introduce una clave o usa la nube si quieres tener los mismos datos en varios móviles u ordenadores a la vez.
+          </p>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="cloudSyncKey" class="form-input" placeholder="Clave de sincronización (Ej: cuca-2026)" style="font-size: 0.85rem;">
+            <button type="button" class="btn btn-secondary" id="cloudSyncSaveBtn" style="white-space: nowrap; padding: 0 14px;">
+              <i class="ri-cloud-upload-line"></i> Sincronizar
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="form-actions" style="margin-top: 24px;">
+        <button type="button" class="btn btn-secondary modal-cancel-btn">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- App Script -->
+  <script src="js/app.js"></script>
+
+  <!-- PWA Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(reg => console.log('PWA ServiceWorker registered:', reg.scope))
+          .catch(err => console.log('ServiceWorker failed:', err));
+      });
+    }
+  </script>
+</body>
+</html>
