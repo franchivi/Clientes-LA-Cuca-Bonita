@@ -150,12 +150,21 @@
             <input type="text" id="inputDireccion" class="form-input" placeholder="Ej: Calle Mayor 14, 2ºB, Madrid">
           </div>
 
-          <div class="form-group form-full">
-            <label class="form-label" for="inputPedido"><i class="ri-shopping-bag-3-line"></i> Pedido / Notas</label>
+          <!-- Optional initial order fields when creating a new client -->
+          <div class="form-group form-full" id="initialOrderGroup">
+            <div style="border-top: 1px dashed var(--border-color); margin: 6px 0 10px 0;"></div>
+            <label class="form-label" style="font-weight: 700; color: var(--primary-color);">
+              <i class="ri-shopping-bag-3-line"></i> Primer Pedido (Opcional)
+            </label>
             <textarea id="inputPedido" class="form-textarea" placeholder="Ej: 1x Vestido Floral Rosa (Talla M), 1x Bolso Artesanal"></textarea>
           </div>
 
-          <div class="form-group form-full">
+          <div class="form-group" id="initialOrderMontoGroup">
+            <label class="form-label" for="inputMonto"><i class="ri-money-euro-box-line"></i> Importe (€)</label>
+            <input type="number" step="0.01" min="0" id="inputMonto" class="form-input" placeholder="Ej: 45.00">
+          </div>
+
+          <div class="form-group" id="initialOrderEstadoGroup">
             <label class="form-label" for="inputEstado"><i class="ri-flag-line"></i> Estado del Pedido</label>
             <select id="inputEstado" class="form-select">
               <option value="pendiente">Pendiente</option>
@@ -170,6 +179,53 @@
         <div class="form-actions">
           <button type="button" class="btn btn-secondary modal-cancel-btn">Cancelar</button>
           <button type="submit" class="btn btn-primary"><i class="ri-save-line"></i> Guardar Cliente</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Order Form Modal (Add / Edit Individual Order) -->
+  <div class="modal-backdrop" id="orderModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title" id="orderModalTitle"><i class="ri-shopping-bag-3-line"></i> Nuevo Pedido</h3>
+        <button class="modal-close-btn"><i class="ri-close-line"></i></button>
+      </div>
+
+      <form id="orderForm">
+        <input type="hidden" id="orderClientId">
+        <input type="hidden" id="orderId">
+
+        <div class="form-grid">
+          <div class="form-group form-full">
+            <label class="form-label" for="inputOrderDescripcion"><i class="ri-shopping-bag-3-line"></i> Descripción del Pedido *</label>
+            <textarea id="inputOrderDescripcion" class="form-textarea" placeholder="Ej: 1x Vestido Floral Rosa (Talla M), 1x Bolso Artesanal" required></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="inputOrderMonto"><i class="ri-money-euro-box-line"></i> Importe (€)</label>
+            <input type="number" step="0.01" min="0" id="inputOrderMonto" class="form-input" placeholder="Ej: 45.00">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="inputOrderEstado"><i class="ri-flag-line"></i> Estado del Pedido</label>
+            <select id="inputOrderEstado" class="form-select">
+              <option value="pendiente">Pendiente</option>
+              <option value="en_proceso">En Proceso</option>
+              <option value="entregado">Entregado</option>
+              <option value="cancelado">Cancelado</option>
+            </select>
+          </div>
+
+          <div class="form-group form-full">
+            <label class="form-label" for="inputOrderNotas"><i class="ri-sticky-note-line"></i> Notas Adicionales</label>
+            <input type="text" id="inputOrderNotas" class="form-input" placeholder="Ej: Entregar por la tarde, Pagado por Bizum">
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary modal-cancel-btn">Cancelar</button>
+          <button type="submit" class="btn btn-primary"><i class="ri-save-line"></i> Guardar Pedido</button>
         </div>
       </form>
     </div>

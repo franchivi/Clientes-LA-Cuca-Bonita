@@ -1,9 +1,9 @@
 /**
  * La Cuca Bonita - Customer Management Mobile Web App
- * Core Application Logic & Data Management
+ * Core Application Logic & Data Management (Multi-Order & History Support)
  */
 
-// Initial Sample Data for La Cuca Bonita
+// Initial Sample Data for La Cuca Bonita with Multi-Orders History
 const SAMPLE_CLIENTS = [
   {
     id: "c-1710000000001",
@@ -12,9 +12,25 @@ const SAMPLE_CLIENTS = [
     telefono: "+34 612 345 678",
     email: "maria.garcia@email.com",
     instagram: "@maria_elena_g",
-    pedido: "1x Vestido Floral Rosa (Talla M), 1x Bolso Artesanal Cuero",
-    estado: "en_proceso",
-    fechaCreacion: "2026-07-20T10:30:00.000Z"
+    fechaCreacion: "2026-07-20T10:30:00.000Z",
+    pedidos: [
+      {
+        id: "p-1710000000001-1",
+        descripcion: "1x Vestido Floral Rosa (Talla M), 1x Bolso Artesanal Cuero",
+        monto: 85.00,
+        estado: "en_proceso",
+        fecha: "2026-07-20T10:30:00.000Z",
+        notas: "Entregar preferiblemente por las tardes"
+      },
+      {
+        id: "p-1710000000001-2",
+        descripcion: "2x Pendientes Dorados Sol",
+        monto: 24.50,
+        estado: "entregado",
+        fecha: "2026-07-05T14:20:00.000Z",
+        notas: "Pagado por Bizum"
+      }
+    ]
   },
   {
     id: "c-1710000000002",
@@ -23,9 +39,17 @@ const SAMPLE_CLIENTS = [
     telefono: "+34 689 112 233",
     email: "lucia.fer@gmail.com",
     instagram: "@lucia_fdz",
-    pedido: "2x Pendientes Dorados Sol, 1x Collar Perlas Dulces",
-    estado: "pendiente",
-    fechaCreacion: "2026-07-22T15:45:00.000Z"
+    fechaCreacion: "2026-07-22T15:45:00.000Z",
+    pedidos: [
+      {
+        id: "p-1710000000002-1",
+        descripcion: "2x Pendientes Dorados Sol, 1x Collar Perlas Dulces",
+        monto: 49.90,
+        estado: "pendiente",
+        fecha: "2026-07-22T15:45:00.000Z",
+        notas: "Empaquetar para regalo de cumpleaños"
+      }
+    ]
   },
   {
     id: "c-1710000000003",
@@ -34,9 +58,17 @@ const SAMPLE_CLIENTS = [
     telefono: "+34 655 987 654",
     email: "carmen.ortiz@hotmail.com",
     instagram: "@carmen_ortiz_mode",
-    pedido: "1x Blusa Seda Blanca, 1x Sombrero Verano Cuca",
-    estado: "entregado",
-    fechaCreacion: "2026-07-15T09:15:00.000Z"
+    fechaCreacion: "2026-07-15T09:15:00.000Z",
+    pedidos: [
+      {
+        id: "p-1710000000003-1",
+        descripcion: "1x Blusa Seda Blanca, 1x Sombrero Verano Cuca",
+        monto: 110.00,
+        estado: "entregado",
+        fecha: "2026-07-15T09:15:00.000Z",
+        notas: "Cliente VIP"
+      }
+    ]
   }
 ];
 
@@ -58,21 +90,44 @@ class AppManager {
     this.render();
   }
 
-  // Load clients from localStorage or insert sample data
+  // Backward compatibility migration helper
+  normalizeClient(client) {
+    if (!client) return client;
+    if (!client.pedidos || !Array.isArray(client.pedidos)) {
+      client.pedidos = [];
+      if (client.pedido || client.estado) {
+        client.pedidos.push({
+          id: "p-" + (client.id || Date.now()) + "-1",
+          descripcion: client.pedido || "Pedido inicial",
+          monto: null,
+          estado: client.estado || "pendiente",
+          fecha: client.fechaCreacion || new Date().toISOString(),
+          notas: ""
+        });
+      }
+    }
+    return client;
+  }
+
+  // Load clients from localStorage or initialize sample data
   loadClients() {
     const stored = localStorage.getItem("lacucabonita_clients");
     if (stored) {
       try {
-        this.clients = JSON.parse(stored);
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          this.clients = parsed.map(c => this.normalizeClient(c));
+        } else {
+          this.clients = SAMPLE_CLIENTS.map(c => this.normalizeClient(c));
+        }
       } catch (e) {
         console.error("Error parsing stored clients, initializing sample data", e);
-        this.clients = [...SAMPLE_CLIENTS];
-        this.saveClients();
+        this.clients = SAMPLE_CLIENTS.map(c => this.normalizeClient(c));
       }
     } else {
-      this.clients = [...SAMPLE_CLIENTS];
-      this.saveClients();
+      this.clients = SAMPLE_CLIENTS.map(c => this.normalizeClient(c));
     }
+    this.saveClients();
   }
 
   saveClients() {
@@ -103,7 +158,7 @@ class AppManager {
     }
   }
 
-  // Formatting and Helpers
+  // Helpers
   cleanPhone(phone) {
     if (!phone) return "";
     return phone.replace(/[^\d+]/g, "");
@@ -137,6 +192,36 @@ class AppManager {
     };
     const label = labelMap[status] || "Pendiente";
     return `<span class="badge badge-${status}">${label}</span>`;
+  }
+
+  formatDate(isoString) {
+    if (!isoString) return "";
+    try {
+      const d = new Date(isoString);
+      return d.toLocaleDateString("es-ES", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric"
+      });
+    } catch (e) {
+      return isoString;
+    }
+  }
+
+  formatCurrency(amount) {
+    if (amount === null || amount === undefined || amount === "") return "";
+    const num = parseFloat(amount);
+    if (isNaN(num)) return "";
+    return num.toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
+  }
+
+  getClientOverallStatus(client) {
+    if (!client.pedidos || client.pedidos.length === 0) return "sin_pedidos";
+    // Check priority: pendiente > en_proceso > entregado > cancelado
+    if (client.pedidos.some(p => p.estado === "pendiente")) return "pendiente";
+    if (client.pedidos.some(p => p.estado === "en_proceso")) return "en_proceso";
+    if (client.pedidos.some(p => p.estado === "entregado")) return "entregado";
+    return "cancelado";
   }
 
   // Event Listeners
@@ -192,12 +277,21 @@ class AppManager {
     if (backupBtn) backupBtn.addEventListener("click", () => this.openBackupModal());
     if (navBackupBtn) navBackupBtn.addEventListener("click", () => this.openBackupModal());
 
-    // Form Submission
+    // Client Form Submission
     const clientForm = document.getElementById("clientForm");
     if (clientForm) {
       clientForm.addEventListener("submit", (e) => {
         e.preventDefault();
         this.saveClientFromForm();
+      });
+    }
+
+    // Order Form Submission
+    const orderForm = document.getElementById("orderForm");
+    if (orderForm) {
+      orderForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        this.saveOrderFromForm();
       });
     }
 
@@ -237,11 +331,14 @@ class AppManager {
   // Filtered Clients List
   getFilteredClients() {
     return this.clients.filter(client => {
-      // Filter by status
-      if (this.currentFilter !== "todos" && client.estado !== this.currentFilter) {
-        return false;
+      // Filter by status: client matches if at least one of their orders matches the filter
+      if (this.currentFilter !== "todos") {
+        if (!client.pedidos || !client.pedidos.some(p => p.estado === this.currentFilter)) {
+          return false;
+        }
       }
-      // Search query
+
+      // Search query: search client info AND order descriptions/notes
       if (this.searchQuery) {
         const q = this.searchQuery;
         const matchName = client.nombre.toLowerCase().includes(q);
@@ -249,9 +346,12 @@ class AppManager {
         const matchPhone = (client.telefono || "").toLowerCase().includes(q);
         const matchEmail = (client.email || "").toLowerCase().includes(q);
         const matchIg = (client.instagram || "").toLowerCase().includes(q);
-        const matchOrder = (client.pedido || "").toLowerCase().includes(q);
+        const matchOrders = client.pedidos && client.pedidos.some(p => 
+          (p.descripcion || "").toLowerCase().includes(q) || 
+          (p.notas || "").toLowerCase().includes(q)
+        );
 
-        return matchName || matchAddress || matchPhone || matchEmail || matchIg || matchOrder;
+        return matchName || matchAddress || matchPhone || matchEmail || matchIg || matchOrders;
       }
       return true;
     });
@@ -286,6 +386,10 @@ class AppManager {
       const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(client.direccion || '')}`;
       const waUrl = cleanPhoneNum ? `https://wa.me/${cleanPhoneNum.replace('+', '')}` : '#';
 
+      const ordersCount = client.pedidos ? client.pedidos.length : 0;
+      const latestOrder = ordersCount > 0 ? client.pedidos[0] : null;
+      const overallStatus = this.getClientOverallStatus(client);
+
       return `
         <div class="customer-card">
           <div class="card-header">
@@ -300,7 +404,10 @@ class AppManager {
                 ` : ''}
               </div>
             </div>
-            ${this.getStatusBadge(client.estado)}
+            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+              ${this.getStatusBadge(overallStatus)}
+              <span class="orders-count-pill"><i class="ri-shopping-bag-3-line"></i> ${ordersCount} ${ordersCount === 1 ? 'pedido' : 'pedidos'}</span>
+            </div>
           </div>
 
           <div class="card-details">
@@ -318,32 +425,39 @@ class AppManager {
               </div>
             ` : ''}
 
-            ${client.pedido ? `
-              <div class="order-box">
-                <div class="order-label"><i class="ri-shopping-bag-3-line"></i> Pedido:</div>
-                <div>${this.escapeHtml(client.pedido)}</div>
+            ${latestOrder ? `
+              <div class="orders-summary-box">
+                <div class="orders-summary-top">
+                  <span class="orders-tag-count">Último Pedido</span>
+                  ${latestOrder.monto ? `<span class="order-item-amount">${this.formatCurrency(latestOrder.monto)}</span>` : ''}
+                </div>
+                <div style="font-size: 0.85rem; font-weight: 500;">${this.escapeHtml(latestOrder.descripcion)}</div>
               </div>
-            ` : ''}
+            ` : `
+              <div class="orders-summary-box" style="border-left-color: var(--border-color); color: var(--text-muted); font-style: italic;">
+                Sin pedidos registrados aún
+              </div>
+            `}
           </div>
 
           <div class="card-actions">
             ${cleanPhoneNum ? `
               <a href="${waUrl}" target="_blank" class="action-btn whatsapp" title="WhatsApp">
-                <i class="ri-whatsapp-line"></i> WhatsApp
+                <i class="ri-whatsapp-line"></i>
               </a>
               <a href="tel:${cleanPhoneNum}" class="action-btn call" title="Llamar">
-                <i class="ri-phone-fill"></i> Llamar
+                <i class="ri-phone-fill"></i>
               </a>
             ` : ''}
             
             ${client.direccion ? `
               <a href="${mapsUrl}" target="_blank" class="action-btn maps" title="Ver en Mapa">
-                <i class="ri-map-pin-2-fill"></i> Mapa
+                <i class="ri-map-pin-2-fill"></i>
               </a>
             ` : ''}
 
             <button class="action-btn details" onclick="app.openDetailModal('${client.id}')">
-              <i class="ri-more-fill"></i> Ver
+              <i class="ri-history-line"></i> Ficha e Historial
             </button>
           </div>
         </div>
@@ -357,14 +471,21 @@ class AppManager {
     const completedEl = document.getElementById("statCompleted");
 
     if (totalEl) totalEl.textContent = this.clients.length;
-    if (activeEl) {
-      const activeCount = this.clients.filter(c => c.estado === 'pendiente' || c.estado === 'en_proceso').length;
-      activeEl.textContent = activeCount;
-    }
-    if (completedEl) {
-      const completedCount = this.clients.filter(c => c.estado === 'entregado').length;
-      completedEl.textContent = completedCount;
-    }
+    
+    let activeOrders = 0;
+    let completedOrders = 0;
+
+    this.clients.forEach(c => {
+      if (c.pedidos) {
+        c.pedidos.forEach(p => {
+          if (p.estado === 'pendiente' || p.estado === 'en_proceso') activeOrders++;
+          if (p.estado === 'entregado') completedOrders++;
+        });
+      }
+    });
+
+    if (activeEl) activeEl.textContent = activeOrders;
+    if (completedEl) completedEl.textContent = completedOrders;
   }
 
   // Modals Management
@@ -379,7 +500,10 @@ class AppManager {
   closeModal(modal) {
     if (modal) {
       modal.classList.remove("active");
-      document.body.style.overflow = "";
+      const activeModals = document.querySelectorAll(".modal-backdrop.active");
+      if (activeModals.length === 0) {
+        document.body.style.overflow = "";
+      }
     }
   }
 
@@ -388,10 +512,15 @@ class AppManager {
     const form = document.getElementById("clientForm");
     const titleEl = document.getElementById("formModalTitle");
 
+    const initialOrderGroup = document.getElementById("initialOrderGroup");
+    const initialOrderMontoGroup = document.getElementById("initialOrderMontoGroup");
+    const initialOrderEstadoGroup = document.getElementById("initialOrderEstadoGroup");
+
     if (!form) return;
     form.reset();
 
     if (clientId) {
+      // Editing existing client profile
       const client = this.clients.find(c => c.id === clientId);
       if (client) {
         titleEl.innerHTML = `<i class="ri-edit-line"></i> Editar Cliente`;
@@ -400,11 +529,17 @@ class AppManager {
         document.getElementById("inputTelefono").value = client.telefono || "";
         document.getElementById("inputEmail").value = client.email || "";
         document.getElementById("inputInstagram").value = client.instagram || "";
-        document.getElementById("inputPedido").value = client.pedido || "";
-        document.getElementById("inputEstado").value = client.estado || "pendiente";
       }
+      // Hide initial order creation when editing client profile (orders managed in history view)
+      if (initialOrderGroup) initialOrderGroup.style.display = "none";
+      if (initialOrderMontoGroup) initialOrderMontoGroup.style.display = "none";
+      if (initialOrderEstadoGroup) initialOrderEstadoGroup.style.display = "none";
     } else {
+      // Adding new client
       titleEl.innerHTML = `<i class="ri-user-add-line"></i> Nuevo Cliente`;
+      if (initialOrderGroup) initialOrderGroup.style.display = "block";
+      if (initialOrderMontoGroup) initialOrderMontoGroup.style.display = "block";
+      if (initialOrderEstadoGroup) initialOrderEstadoGroup.style.display = "block";
     }
 
     this.openModal("formModal");
@@ -416,8 +551,6 @@ class AppManager {
     const telefono = document.getElementById("inputTelefono").value.trim();
     const email = document.getElementById("inputEmail").value.trim();
     const instagram = document.getElementById("inputInstagram").value.trim();
-    const pedido = document.getElementById("inputPedido").value.trim();
-    const estado = document.getElementById("inputEstado").value;
 
     if (!nombre) {
       this.showToast("El Nombre Completo es obligatorio");
@@ -425,7 +558,7 @@ class AppManager {
     }
 
     if (this.editingClientId) {
-      // Edit existing
+      // Edit existing client info
       const index = this.clients.findIndex(c => c.id === this.editingClientId);
       if (index !== -1) {
         this.clients[index] = {
@@ -435,25 +568,41 @@ class AppManager {
           telefono,
           email,
           instagram,
-          pedido,
-          estado,
           fechaActualizacion: new Date().toISOString()
         };
         this.showToast("Cliente actualizado correctamente");
       }
     } else {
-      // Add new
+      // Add new client
+      const initialPedidoText = document.getElementById("inputPedido") ? document.getElementById("inputPedido").value.trim() : "";
+      const initialMonto = document.getElementById("inputMonto") ? document.getElementById("inputMonto").value : "";
+      const initialEstado = document.getElementById("inputEstado") ? document.getElementById("inputEstado").value : "pendiente";
+
+      const newClientId = "c-" + Date.now();
+      const initialPedidos = [];
+
+      if (initialPedidoText) {
+        initialPedidos.push({
+          id: "p-" + Date.now() + "-1",
+          descripcion: initialPedidoText,
+          monto: initialMonto ? parseFloat(initialMonto) : null,
+          estado: initialEstado,
+          fecha: new Date().toISOString(),
+          notas: ""
+        });
+      }
+
       const newClient = {
-        id: "c-" + Date.now(),
+        id: newClientId,
         nombre,
         direccion,
         telefono,
         email,
         instagram,
-        pedido,
-        estado,
-        fechaCreacion: new Date().toISOString()
+        fechaCreacion: new Date().toISOString(),
+        pedidos: initialPedidos
       };
+
       this.clients.unshift(newClient);
       this.showToast("Cliente añadido con éxito");
     }
@@ -463,10 +612,13 @@ class AppManager {
     this.render();
   }
 
+  // Detail Modal (Ficha del Cliente & Historial de Pedidos)
   openDetailModal(clientId) {
     this.viewingClientId = clientId;
     const client = this.clients.find(c => c.id === clientId);
     if (!client) return;
+
+    this.normalizeClient(client);
 
     const detailContainer = document.getElementById("detailModalContent");
     const cleanPhoneNum = this.cleanPhone(client.telefono);
@@ -478,11 +630,63 @@ class AppManager {
     const mailUrl = client.email ? `mailto:${client.email}` : '#';
     const igUrl = cleanIg ? `https://instagram.com/${cleanIg}` : '#';
 
+    const overallStatus = this.getClientOverallStatus(client);
+    const ordersCount = client.pedidos ? client.pedidos.length : 0;
+
+    // Render Order Timeline HTML
+    let ordersHtml = "";
+    if (ordersCount === 0) {
+      ordersHtml = `
+        <div style="text-align: center; padding: 20px 10px; color: var(--text-muted); font-size: 0.9rem;">
+          <i class="ri-shopping-bag-line" style="font-size: 28px; color: var(--primary-color); display: block; margin-bottom: 6px;"></i>
+          No hay pedidos registrados en el historial de este cliente.
+        </div>
+      `;
+    } else {
+      ordersHtml = client.pedidos.map(p => {
+        return `
+          <div class="order-item-card">
+            <div class="order-item-header">
+              <span class="order-date-badge">
+                <i class="ri-calendar-event-line"></i> ${this.formatDate(p.fecha)}
+              </span>
+              ${p.monto ? `<span class="order-item-amount">${this.formatCurrency(p.monto)}</span>` : ''}
+            </div>
+
+            <div class="order-item-desc">${this.escapeHtml(p.descripcion)}</div>
+
+            ${p.notas ? `<div class="order-item-notes"><i class="ri-sticky-note-line"></i> ${this.escapeHtml(p.notas)}</div>` : ''}
+
+            <div class="order-item-footer">
+              <select class="order-status-select" onchange="app.updateOrderStatusInline('${client.id}', '${p.id}', this.value)">
+                <option value="pendiente" ${p.estado === 'pendiente' ? 'selected' : ''}>🟡 Pendiente</option>
+                <option value="en_proceso" ${p.estado === 'en_proceso' ? 'selected' : ''}>🔵 En Proceso</option>
+                <option value="entregado" ${p.estado === 'entregado' ? 'selected' : ''}>🟢 Entregado</option>
+                <option value="cancelado" ${p.estado === 'cancelado' ? 'selected' : ''}>⚪ Cancelado</option>
+              </select>
+
+              <div class="order-item-actions">
+                <button class="btn-icon-sm" onclick="app.openOrderForm('${client.id}', '${p.id}')" title="Editar Pedido">
+                  <i class="ri-edit-line"></i>
+                </button>
+                <button class="btn-icon-sm delete" onclick="app.deleteOrder('${client.id}', '${p.id}')" title="Eliminar Pedido">
+                  <i class="ri-delete-bin-line"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
     detailContainer.innerHTML = `
       <div class="detail-header-card">
         <div class="detail-avatar">${initials}</div>
         <h2 style="font-size: 1.3rem; font-weight: 700; margin-bottom: 4px;">${this.escapeHtml(client.nombre)}</h2>
-        <div style="margin-bottom: 12px;">${this.getStatusBadge(client.estado)}</div>
+        <div style="margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+          ${this.getStatusBadge(overallStatus)}
+          <span class="orders-count-pill">${ordersCount} ${ordersCount === 1 ? 'pedido' : 'pedidos'}</span>
+        </div>
       </div>
 
       <div class="detail-actions-grid">
@@ -506,15 +710,7 @@ class AppManager {
         ` : ''}
       </div>
 
-      <div class="card-details" style="font-size: 0.95rem; gap: 14px; padding-top: 0; border: none;">
-        <div class="detail-row">
-          <i class="ri-user-3-line" style="font-size: 18px;"></i>
-          <div>
-            <div class="order-label">Nombre Completo</div>
-            <div class="detail-text">${this.escapeHtml(client.nombre)}</div>
-          </div>
-        </div>
-
+      <div class="card-details" style="font-size: 0.95rem; gap: 12px; padding-top: 0; border: none;">
         ${client.telefono ? `
           <div class="detail-row">
             <i class="ri-phone-line" style="font-size: 18px;"></i>
@@ -554,13 +750,23 @@ class AppManager {
             </div>
           </div>
         ` : ''}
+      </div>
 
-        ${client.pedido ? `
-          <div class="order-box" style="margin-top: 6px; padding: 14px;">
-            <div class="order-label" style="font-size: 0.8rem;"><i class="ri-shopping-bag-3-line"></i> Detalles del Pedido</div>
-            <div style="white-space: pre-line; margin-top: 6px; font-weight: 500;">${this.escapeHtml(client.pedido)}</div>
+      <!-- Historial de Pedidos Timeline Section -->
+      <div class="orders-history-section">
+        <div class="orders-history-header">
+          <div class="orders-history-title">
+            <i class="ri-history-line" style="color: var(--primary-color);"></i>
+            Historial de Pedidos
           </div>
-        ` : ''}
+          <button class="btn btn-primary" onclick="app.openOrderForm('${client.id}')" style="padding: 6px 14px; font-size: 0.82rem;">
+            <i class="ri-add-line"></i> Nuevo Pedido
+          </button>
+        </div>
+
+        <div class="orders-timeline">
+          ${ordersHtml}
+        </div>
       </div>
 
       <div class="form-actions" style="margin-top: 24px; border-top: 1px solid var(--border-color); padding-top: 16px;">
@@ -569,12 +775,135 @@ class AppManager {
         </button>
         <button class="btn btn-secondary" onclick="app.closeModal(document.getElementById('detailModal'))">Cerrar</button>
         <button class="btn btn-primary" onclick="app.openFormFromDetail('${client.id}')">
-          <i class="ri-edit-line"></i> Editar
+          <i class="ri-edit-line"></i> Editar Datos
         </button>
       </div>
     `;
 
     this.openModal("detailModal");
+  }
+
+  // Individual Order Form Management (Add / Edit Order)
+  openOrderForm(clientId, orderId = null) {
+    const client = this.clients.find(c => c.id === clientId);
+    if (!client) return;
+
+    document.getElementById("orderClientId").value = clientId;
+    document.getElementById("orderId").value = orderId || "";
+
+    const titleEl = document.getElementById("orderModalTitle");
+    const descInput = document.getElementById("inputOrderDescripcion");
+    const montoInput = document.getElementById("inputOrderMonto");
+    const estadoSelect = document.getElementById("inputOrderEstado");
+    const notasInput = document.getElementById("inputOrderNotas");
+
+    if (orderId) {
+      titleEl.innerHTML = `<i class="ri-edit-line"></i> Editar Pedido`;
+      const order = client.pedidos ? client.pedidos.find(p => p.id === orderId) : null;
+      if (order) {
+        descInput.value = order.descripcion || "";
+        montoInput.value = order.monto !== null && order.monto !== undefined ? order.monto : "";
+        estadoSelect.value = order.estado || "pendiente";
+        notasInput.value = order.notas || "";
+      }
+    } else {
+      titleEl.innerHTML = `<i class="ri-shopping-bag-3-line"></i> Nuevo Pedido para ${this.escapeHtml(client.nombre)}`;
+      descInput.value = "";
+      montoInput.value = "";
+      estadoSelect.value = "pendiente";
+      notasInput.value = "";
+    }
+
+    this.openModal("orderModal");
+  }
+
+  saveOrderFromForm() {
+    const clientId = document.getElementById("orderClientId").value;
+    const orderId = document.getElementById("orderId").value;
+
+    const descripcion = document.getElementById("inputOrderDescripcion").value.trim();
+    const montoVal = document.getElementById("inputOrderMonto").value;
+    const estado = document.getElementById("inputOrderEstado").value;
+    const notas = document.getElementById("inputOrderNotas").value.trim();
+
+    if (!descripcion) {
+      this.showToast("La Descripción del pedido es obligatoria");
+      return;
+    }
+
+    const client = this.clients.find(c => c.id === clientId);
+    if (!client) return;
+
+    if (!client.pedidos) client.pedidos = [];
+
+    const monto = montoVal !== "" ? parseFloat(montoVal) : null;
+
+    if (orderId) {
+      // Edit existing order
+      const orderIndex = client.pedidos.findIndex(p => p.id === orderId);
+      if (orderIndex !== -1) {
+        client.pedidos[orderIndex] = {
+          ...client.pedidos[orderIndex],
+          descripcion,
+          monto,
+          estado,
+          notas
+        };
+        this.showToast("Pedido actualizado con éxito");
+      }
+    } else {
+      // Add new order at top of history
+      const newOrder = {
+        id: "p-" + Date.now() + "-" + (client.pedidos.length + 1),
+        descripcion,
+        monto,
+        estado,
+        fecha: new Date().toISOString(),
+        notas
+      };
+      client.pedidos.unshift(newOrder);
+      this.showToast("Nuevo pedido registrado correctamente");
+    }
+
+    this.saveClients();
+    this.closeModal(document.getElementById("orderModal"));
+    
+    // Refresh detail modal if open
+    if (this.viewingClientId === clientId) {
+      this.openDetailModal(clientId);
+    }
+    this.render();
+  }
+
+  updateOrderStatusInline(clientId, orderId, newStatus) {
+    const client = this.clients.find(c => c.id === clientId);
+    if (!client || !client.pedidos) return;
+
+    const order = client.pedidos.find(p => p.id === orderId);
+    if (order) {
+      order.estado = newStatus;
+      this.saveClients();
+      this.showToast("Estado del pedido actualizado");
+      this.render();
+      if (this.viewingClientId === clientId) {
+        this.openDetailModal(clientId);
+      }
+    }
+  }
+
+  deleteOrder(clientId, orderId) {
+    if (confirm("¿Estás seguro de que deseas eliminar este pedido del historial?")) {
+      const client = this.clients.find(c => c.id === clientId);
+      if (!client || !client.pedidos) return;
+
+      client.pedidos = client.pedidos.filter(p => p.id !== orderId);
+      this.saveClients();
+      this.showToast("Pedido eliminado");
+      this.render();
+      if (this.viewingClientId === clientId) {
+        this.openDetailModal(clientId);
+      }
+    }
   }
 
   openFormFromDetail(clientId) {
@@ -583,7 +912,7 @@ class AppManager {
   }
 
   deleteClient(clientId) {
-    if (confirm("¿Estás seguro de que deseas eliminar este cliente?")) {
+    if (confirm("¿Estás seguro de que deseas eliminar este cliente y todo su historial de pedidos?")) {
       this.clients = this.clients.filter(c => c.id !== clientId);
       this.saveClients();
       this.closeModal(document.getElementById("detailModal"));
@@ -615,30 +944,55 @@ class AppManager {
       return;
     }
 
-    const headers = ["Nombre Completo", "Dirección", "Teléfono", "Email", "Instagram", "Pedido", "Estado", "Fecha Creación"];
-    const rows = this.clients.map(c => [
-      `"${(c.nombre || '').replace(/"/g, '""')}"`,
-      `"${(c.direccion || '').replace(/"/g, '""')}"`,
-      `"${(c.telefono || '').replace(/"/g, '""')}"`,
-      `"${(c.email || '').replace(/"/g, '""')}"`,
-      `"${(c.instagram || '').replace(/"/g, '""')}"`,
-      `"${(c.pedido || '').replace(/"/g, '""')}"`,
-      `"${(c.estado || '').replace(/"/g, '""')}"`,
-      `"${c.fechaCreacion || ''}"`
-    ]);
+    const headers = ["ID Cliente", "Nombre Completo", "Dirección", "Teléfono", "Email", "Instagram", "Total Pedidos", "ID Pedido", "Fecha Pedido", "Descripción Pedido", "Importe (€)", "Estado Pedido", "Notas Pedido"];
+    
+    const rows = [];
+
+    this.clients.forEach(c => {
+      if (c.pedidos && c.pedidos.length > 0) {
+        c.pedidos.forEach(p => {
+          rows.push([
+            `"${(c.id || '').replace(/"/g, '""')}"`,
+            `"${(c.nombre || '').replace(/"/g, '""')}"`,
+            `"${(c.direccion || '').replace(/"/g, '""')}"`,
+            `"${(c.telefono || '').replace(/"/g, '""')}"`,
+            `"${(c.email || '').replace(/"/g, '""')}"`,
+            `"${(c.instagram || '').replace(/"/g, '""')}"`,
+            `"${c.pedidos.length}"`,
+            `"${(p.id || '').replace(/"/g, '""')}"`,
+            `"${(p.fecha || '').replace(/"/g, '""')}"`,
+            `"${(p.descripcion || '').replace(/"/g, '""')}"`,
+            `"${p.monto !== null && p.monto !== undefined ? p.monto : ''}"`,
+            `"${(p.estado || '').replace(/"/g, '""')}"`,
+            `"${(p.notas || '').replace(/"/g, '""')}"`
+          ]);
+        });
+      } else {
+        rows.push([
+          `"${(c.id || '').replace(/"/g, '""')}"`,
+          `"${(c.nombre || '').replace(/"/g, '""')}"`,
+          `"${(c.direccion || '').replace(/"/g, '""')}"`,
+          `"${(c.telefono || '').replace(/"/g, '""')}"`,
+          `"${(c.email || '').replace(/"/g, '""')}"`,
+          `"${(c.instagram || '').replace(/"/g, '""')}"`,
+          `"0"`,
+          `""`, `""`, `""`, `""`, `""`, `""`
+        ]);
+      }
+    });
 
     const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const downloadAnchor = document.createElement("a");
-    const fileName = `Clientes_LaCucaBonita_${new Date().toISOString().slice(0, 10)}.csv`;
+    const fileName = `Clientes_LaCucaBonita_Historial_${new Date().toISOString().slice(0, 10)}.csv`;
 
     downloadAnchor.setAttribute("href", url);
     downloadAnchor.setAttribute("download", fileName);
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
-    this.showToast("Excel/CSV exportado correctamente");
+    this.showToast("Excel/CSV con historial exportado");
   }
 
   importJSON(event) {
@@ -650,7 +1004,7 @@ class AppManager {
       try {
         const imported = JSON.parse(e.target.result);
         if (Array.isArray(imported)) {
-          this.clients = imported;
+          this.clients = imported.map(c => this.normalizeClient(c));
           this.saveClients();
           this.render();
           this.closeModal(document.getElementById("backupModal"));

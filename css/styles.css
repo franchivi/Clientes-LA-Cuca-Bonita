@@ -672,6 +672,12 @@ body {
   transition: opacity 0.25s ease;
 }
 
+/* Modal Stacking Order */
+#formModal { z-index: 200; }
+#detailModal { z-index: 210; }
+#backupModal { z-index: 220; }
+#orderModal { z-index: 250; }
+
 .modal-backdrop.active {
   opacity: 1;
   pointer-events: auto;
@@ -1001,3 +1007,189 @@ body {
   opacity: 1;
   transform: translateY(0);
 }
+
+/* Order History & Timeline Styles */
+.orders-history-section {
+  margin-top: 20px;
+  border-top: 1px solid var(--border-color);
+  padding-top: 16px;
+}
+
+.orders-history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.orders-history-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.orders-count-pill {
+  background: var(--primary-light);
+  color: var(--primary-color);
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 2px 10px;
+  border-radius: var(--border-radius-full);
+}
+
+.orders-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.order-item-card {
+  background: var(--bg-surface);
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--border-color);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: var(--transition-fast);
+  position: relative;
+}
+
+.order-item-card:hover {
+  border-color: rgba(216, 74, 117, 0.3);
+  box-shadow: var(--shadow-sm);
+}
+
+.order-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.order-date-badge {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.order-item-amount {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--accent-gold);
+  background: var(--accent-gold-light);
+  padding: 2px 8px;
+  border-radius: var(--border-radius-sm);
+  border: 1px solid rgba(229, 169, 60, 0.3);
+}
+
+[data-theme="dark"] .order-item-amount {
+  background: rgba(229, 169, 60, 0.15);
+}
+
+.order-item-desc {
+  font-size: 0.9rem;
+  color: var(--text-main);
+  font-weight: 500;
+  white-space: pre-line;
+  line-height: 1.4;
+}
+
+.order-item-notes {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  background: var(--bg-card);
+  padding: 6px 10px;
+  border-radius: var(--border-radius-sm);
+  border-left: 2px solid var(--accent-gold);
+  font-style: italic;
+}
+
+.order-item-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-top: 1px dashed var(--border-color);
+  padding-top: 8px;
+  margin-top: 2px;
+}
+
+.order-status-select {
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border-radius: var(--border-radius-full);
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-main);
+  cursor: pointer;
+  outline: none;
+}
+
+.order-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-icon-sm {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-main);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  transition: var(--transition-fast);
+}
+
+.btn-icon-sm:hover {
+  background: var(--primary-light);
+  color: var(--primary-color);
+  border-color: rgba(216, 74, 117, 0.3);
+}
+
+.btn-icon-sm.delete:hover {
+  background: #fee2e2;
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+/* Card Order Summary Badges */
+.orders-summary-box {
+  background: var(--bg-surface);
+  padding: 10px 12px;
+  border-radius: var(--border-radius-sm);
+  margin-top: 4px;
+  border-left: 3px solid var(--primary-color);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.orders-summary-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.orders-tag-count {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--primary-color);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
